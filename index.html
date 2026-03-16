@@ -349,6 +349,13 @@
     Cuando comprás una LECAP, el Estado te promete un valor fijo al vencimiento. Pero como cotiza en bolsa, <strong>el precio cambia todos los días</strong>. Si las tasas de mercado bajan, el precio sube por encima de lo esperado — y puede convenir vender antes de tiempo. Si suben, el precio baja y esperar es mejor.
   </div>
 
+  <div style="display:flex; align-items:flex-start; gap:10px; margin-bottom:1.25rem; padding:12px 16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); border-left:3px solid var(--accent-mid);">
+    <div>
+      <span style="font-size:11px; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:var(--accent-mid);">Versión 3.0</span>
+      <p style="font-size:13px; color:var(--text-muted); margin-top:3px; line-height:1.6;">Ahora podés definir el plazo en días exactos — desde 7 hasta 180 — y elegir en qué día cambia la tasa de mercado. Esto permite simular escenarios reales con la fecha de vencimiento de tu LECAP, en vez de trabajar con meses enteros.</p>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title">Parámetros</div>
     <div class="controls">
@@ -363,9 +370,14 @@
         <span class="ctrl-val" id="tasaMercadoVal">1.5% mensual</span>
       </div>
       <div class="ctrl-group">
-        <span class="ctrl-label">Mes en que cambia la tasa</span>
-        <input type="range" min="1" max="5" step="1" value="2" id="mesCambio">
-        <span class="ctrl-val" id="mesCambioVal">mes 2</span>
+        <span class="ctrl-label">Días totales al vencimiento</span>
+        <input type="range" min="7" max="180" step="1" value="120" id="diasTotal">
+        <span class="ctrl-val" id="diasTotalVal">120 días</span>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Día en que cambia la tasa</span>
+        <input type="range" min="7" max="170" step="1" value="30" id="diasCambio">
+        <span class="ctrl-val" id="diasCambioVal">día 30</span>
       </div>
       <div class="ctrl-group">
         <span class="ctrl-label">Tu inversión ($)</span>
@@ -411,7 +423,7 @@
         <thead>
           <tr>
             <th>Momento</th>
-            <th>Retorno del mes</th>
+            <th>Retorno del período</th>
             <th>Precio mercado</th>
             <th>Valor técnico</th>
             <th>Ganancia si vendés</th>
@@ -432,7 +444,6 @@
 </footer>
 
 <script>
-const MESES_TOTAL = 4;
 let myChart = null;
 
 function fmt(n) {
@@ -443,46 +454,62 @@ function fmtPct(n) {
   return (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
 }
 
+function tasaDiaria(tasaMensual) {
+  return Math.pow(1 + tasaMensual / 100, 1 / 30) - 1;
+}
+
 function update() {
   const tasaCompra = parseFloat(document.getElementById('tasaCompra').value);
   const tasaMercado = parseFloat(document.getElementById('tasaMercado').value);
-  const mesCambio = parseInt(document.getElementById('mesCambio').value);
+  const diasTotal = parseInt(document.getElementById('diasTotal').value);
+  let diasCambio = parseInt(document.getElementById('diasCambio').value);
   const capital = parseFloat(document.getElementById('capital').value);
+
+  if (diasCambio >= diasTotal) {
+    diasCambio = Math.max(7, diasTotal - 7);
+    document.getElementById('diasCambio').value = diasCambio;
+  }
 
   document.getElementById('tasaCompraVal').textContent = tasaCompra.toFixed(1) + '% mensual';
   document.getElementById('tasaMercadoVal').textContent = tasaMercado.toFixed(1) + '% mensual';
-  document.getElementById('mesCambioVal').textContent = 'mes ' + mesCambio;
+  document.getElementById('diasTotalVal').textContent = diasTotal + ' días';
+  document.getElementById('diasCambioVal').textContent = 'día ' + diasCambio;
   document.getElementById('capitalVal').textContent = fmt(capital);
+
+  const td = tasaDiaria(tasaCompra);
+  const tm = tasaDiaria(tasaMercado);
+  const valorFinal = Math.pow(1 + td, diasTotal);
+
+  const paso = Math.max(1, Math.round(diasTotal / 8));
+  const puntos = [];
+  for (let d = 0; d <= diasTotal; d += paso) puntos.push(d);
+  if (puntos[puntos.length - 1] !== diasTotal) puntos.push(diasTotal);
 
   const labels = [];
   const precioData = [];
   const tecnicoData = [];
 
-  const tc = tasaCompra / 100;
-  const tm = tasaMercado / 100;
-  const valorFinal = Math.pow(1 + tc, MESES_TOTAL);
-
-  for (let m = 0; m <= MESES_TOTAL; m++) {
-    labels.push(m === 0 ? 'Hoy' : m === MESES_TOTAL ? 'Venc.' : 'Mes ' + m);
-    const tecnico = Math.pow(1 + tc, m);
-    tecnicoData.push(parseFloat(tecnico.toFixed(6)));
-    const mesesRestantes = MESES_TOTAL - m;
+  for (const d of puntos) {
+    labels.push(d === 0 ? 'Hoy' : d === diasTotal ? 'Venc.' : 'Día ' + d);
+    const tecnico = Math.pow(1 + td, d);
+    tecnicoData.push(parseFloat(tecnico.toFixed(8)));
+    const diasRestantes = diasTotal - d;
     let precio;
-    if (m < mesCambio) {
-      precio = mesesRestantes === 0 ? valorFinal : valorFinal / Math.pow(1 + tc, mesesRestantes);
+    if (d < diasCambio) {
+      precio = diasRestantes === 0 ? valorFinal : valorFinal / Math.pow(1 + td, diasRestantes);
     } else {
-      precio = mesesRestantes === 0 ? valorFinal : valorFinal / Math.pow(1 + tm, mesesRestantes);
+      precio = diasRestantes === 0 ? valorFinal : valorFinal / Math.pow(1 + tm, diasRestantes);
     }
-    precioData.push(parseFloat(precio.toFixed(6)));
+    precioData.push(parseFloat(precio.toFixed(8)));
   }
 
   let maxPrecio = precioData[0];
-  let maxMes = 0;
-  for (let m = 1; m <= MESES_TOTAL; m++) {
-    if (precioData[m] > maxPrecio) { maxPrecio = precioData[m]; maxMes = m; }
+  let maxIdx = 0;
+  for (let i = 1; i < puntos.length; i++) {
+    if (precioData[i] > maxPrecio) { maxPrecio = precioData[i]; maxIdx = i; }
   }
 
-  const valorVenc = tecnicoData[MESES_TOTAL] * capital;
+  const valorVenc = tecnicoData[tecnicoData.length - 1] * capital;
   const valorPico = maxPrecio * capital;
   const extra = valorPico - valorVenc;
 
@@ -506,13 +533,18 @@ function update() {
 
   const tbody = document.getElementById('monthBody');
   tbody.innerHTML = '';
-  for (let m = 0; m <= MESES_TOTAL; m++) {
-    const pm = precioData[m] * capital;
-    const vt = tecnicoData[m] * capital;
+  for (let i = 0; i < puntos.length; i++) {
+    const d = puntos[i];
+    const pm = precioData[i] * capital;
+    const vt = tecnicoData[i] * capital;
     const ganancia = pm - capital;
     const diff = pm - vt;
-    const isPeak = m === maxMes && maxMes !== 0 && maxMes !== MESES_TOTAL;
-    const label = m === 0 ? 'Hoy' : m === MESES_TOTAL ? 'Vencimiento' : 'Mes ' + m;
+    const isPeak = i === maxIdx && maxIdx !== 0 && maxIdx !== puntos.length - 1;
+    const label = d === 0 ? 'Hoy' : d === diasTotal ? 'Vencimiento' : 'Día ' + d;
+
+    const rendPer = i === 0 ? 0 : ((precioData[i] - precioData[i-1]) / precioData[i-1]) * 100;
+    const tasaColor = i === 0 ? '#7a7670' : rendPer > (tasaCompra * paso / 30) ? '#1a5c35' : '#8b2020';
+    const tasaLabel = i === 0 ? '—' : (rendPer >= 0 ? '+' : '') + rendPer.toFixed(2) + '%';
 
     let tagHtml = '';
     if (isPeak) tagHtml = '<span class="tag tag-green">mejor momento</span>';
@@ -521,10 +553,6 @@ function update() {
 
     const diffColor = diff > 500 ? '#1a5c35' : diff < -500 ? '#8b2020' : '#7a7670';
     const diffStr = (diff >= 0 ? '+' : '') + fmt(diff);
-
-    const rendMes = m === 0 ? 0 : ((precioData[m] - precioData[m-1]) / precioData[m-1]) * 100;
-    const tasaColor = m === 0 ? '#7a7670' : rendMes > tasaCompra ? '#1a5c35' : rendMes < tasaCompra ? '#8b2020' : '#7a7670';
-    const tasaLabel = m === 0 ? '—' : (rendMes >= 0 ? '+' : '') + rendMes.toFixed(2) + '%';
 
     tbody.innerHTML += `<tr${isPeak ? ' class="peak"' : ''}>
       <td>${label}</td>
@@ -543,9 +571,9 @@ function update() {
   const optPlugin = {
     id: 'optPlugin',
     afterDatasetsDraw(chart) {
-      if (maxMes === 0 || maxMes === MESES_TOTAL) return;
+      if (maxIdx === 0 || maxIdx === puntos.length - 1) return;
       const {ctx, scales: {x, y}} = chart;
-      const xPos = x.getPixelForValue(maxMes);
+      const xPos = x.getPixelForValue(maxIdx);
       const yPos = y.getPixelForValue(maxPrecio);
       ctx.save();
       ctx.setLineDash([4, 4]);
@@ -573,8 +601,8 @@ function update() {
     myChart.data.labels = labels;
     myChart.data.datasets[0].data = precioData;
     myChart.data.datasets[1].data = tecnicoData;
-    myChart.options.scales.y.min = parseFloat(minV.toFixed(5));
-    myChart.options.scales.y.max = parseFloat(maxV.toFixed(5));
+    myChart.options.scales.y.min = parseFloat(minV.toFixed(6));
+    myChart.options.scales.y.max = parseFloat(maxV.toFixed(6));
     myChart.config.plugins = [optPlugin];
     myChart.update();
   } else {
@@ -592,7 +620,7 @@ function update() {
             borderWidth: 2.5,
             fill: true,
             tension: 0.3,
-            pointRadius: 5,
+            pointRadius: 4,
             pointBackgroundColor: '#1e3d6b'
           },
           {
@@ -603,7 +631,7 @@ function update() {
             borderDash: [6, 4],
             fill: false,
             tension: 0,
-            pointRadius: 4,
+            pointRadius: 3,
             pointBackgroundColor: '#1a5c35'
           }
         ]
@@ -626,11 +654,11 @@ function update() {
         scales: {
           x: {
             grid: { color: 'rgba(26,24,20,0.06)' },
-            ticks: { color: '#7a7670', autoSkip: false, maxRotation: 0, font: { size: 12, family: 'DM Sans' } }
+            ticks: { color: '#7a7670', autoSkip: false, maxRotation: 45, font: { size: 11, family: 'DM Sans' } }
           },
           y: {
-            min: parseFloat(minV.toFixed(5)),
-            max: parseFloat(maxV.toFixed(5)),
+            min: parseFloat(minV.toFixed(6)),
+            max: parseFloat(maxV.toFixed(6)),
             grid: { color: 'rgba(26,24,20,0.06)' },
             ticks: {
               color: '#7a7670',
@@ -644,7 +672,7 @@ function update() {
   }
 }
 
-['tasaCompra','tasaMercado','mesCambio','capital'].forEach(id => {
+['tasaCompra','tasaMercado','diasTotal','diasCambio','capital'].forEach(id => {
   document.getElementById(id).addEventListener('input', update);
 });
 
