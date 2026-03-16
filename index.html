@@ -411,7 +411,7 @@
         <thead>
           <tr>
             <th>Momento</th>
-            <th>Tasa del mes</th>
+            <th>Retorno del mes</th>
             <th>Precio mercado</th>
             <th>Valor técnico</th>
             <th>Ganancia si vendés</th>
@@ -522,9 +522,9 @@ function update() {
     const diffColor = diff > 500 ? '#1a5c35' : diff < -500 ? '#8b2020' : '#7a7670';
     const diffStr = (diff >= 0 ? '+' : '') + fmt(diff);
 
-    const tasaMes = m < mesCambio ? tasaCompra : tasaMercado;
-    const tasaColor = m === 0 ? '#7a7670' : tasaMes < tasaCompra ? '#1a5c35' : tasaMes > tasaCompra ? '#8b2020' : '#7a7670';
-    const tasaLabel = tasaMes.toFixed(1) + '%';
+    const rendMes = m === 0 ? 0 : ((precioData[m] - precioData[m-1]) / precioData[m-1]) * 100;
+    const tasaColor = m === 0 ? '#7a7670' : rendMes > tasaCompra ? '#1a5c35' : rendMes < tasaCompra ? '#8b2020' : '#7a7670';
+    const tasaLabel = m === 0 ? '—' : (rendMes >= 0 ? '+' : '') + rendMes.toFixed(2) + '%';
 
     tbody.innerHTML += `<tr${isPeak ? ' class="peak"' : ''}>
       <td>${label}</td>
