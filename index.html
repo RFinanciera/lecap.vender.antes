@@ -9,6 +9,68 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* ── NAV SIMULADORES ── */
+  .sim-nav-bar {
+    background: #fff;
+    border-bottom: 1px solid rgba(26,24,20,0.1);
+    padding: 10px 0;
+  }
+
+  .sim-nav-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .sim-nav-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    margin-right: 4px;
+  }
+
+  .sim-nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 13px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid rgba(26,24,20,0.12);
+    color: var(--text-muted);
+    background: #f7f5f0;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+    white-space: nowrap;
+  }
+
+  .sim-nav-link:hover {
+    border-color: var(--accent-mid);
+    color: var(--accent-mid);
+    background: var(--accent-light);
+  }
+
+  .sim-nav-active {
+    border-color: var(--accent-mid) !important;
+    color: var(--accent-mid) !important;
+    background: var(--accent-light) !important;
+    pointer-events: none;
+  }
+
+  @media (max-width: 480px) {
+    .sim-nav-inner { gap: 6px; }
+    .sim-nav-label { width: 100%; margin-bottom: 2px; }
+    .sim-nav-link { font-size: 11px; padding: 4px 10px; }
+  }
+
   :root {
     --bg: #f7f5f0;
     --surface: #ffffff;
@@ -334,6 +396,22 @@
 </style>
 </head>
 <body>
+
+<!-- NAV SIMULADORES -->
+<div class="sim-nav-bar">
+  <div class="sim-nav-inner">
+    <span class="sim-nav-label">Más simuladores:</span>
+    <a href="https://rfinanciera.github.io/Comisiones.brokers/" target="_blank" class="sim-nav-link">
+      💼 Comisiones Brokers
+    </a>
+    <a href="https://rfinanciera.github.io/lecap.vender.antes/" class="sim-nav-link sim-nav-active">
+      📊 ¿Cuándo vender LECAPs?
+    </a>
+    <a href="https://rfinanciera.github.io/simulador.carry.trade/" target="_blank" class="sim-nav-link">
+      💱 Carry Trade
+    </a>
+  </div>
+</div>
 
 <header>
   <div class="header-inner">
